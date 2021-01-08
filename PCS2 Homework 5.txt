@@ -1,0 +1,695 @@
+Completing a Tree
+
+data = "rosalind_tree.txt"
+
+
+with open(data, "r") as f:
+    n = int(f.readline())
+    adjacency_list = [line.strip().split(" ") for line in f]
+
+
+subtrees = [] 
+nodes = set() 
+for i, j in adjacency_list:
+    if i in nodes or j in nodes:
+        for st in subtrees:
+            if i in st or j in st:
+                subtrees[subtrees.index(st)].append(i)
+                subtrees[subtrees.index(st)].append(j)
+                nodes.add(i), nodes.add(j)
+    else:
+        subtrees.append([i,j])
+        nodes.add(i), nodes.add(j)
+
+l = len(subtrees)
+for i in range(l):
+    for j in range(l):
+        if i==j:
+           break
+        if len(set(subtrees[i] + subtrees[j])) < len(subtrees[i]) + len(subtrees[j]):
+            subtrees[i] = list(set(subtrees[i] + subtrees[j]))
+            subtrees[j] = []
+subtrees = [i for i in subtrees if i]
+
+
+result = (n -len(nodes)) + len(subtrees) 
+print(result)
+
+
+Counting Phylogenetic Ancestors
+
+with open("rosalind_inod.txt") as f:
+    n = int(f.readline().strip())
+
+print(n-2)
+
+
+
+Counting Point Mutations
+
+def Hamming_distance(first,second):
+    distance = 0
+    for i in range(len(first)):
+        if first[i] != second[i]:
+            distance += 1
+    return distance
+
+
+with open('rosalind_hamm.txt','r') as file:
+    content = file.read()
+s, t=content.splitlines()
+print(Hamming_distance(s, t))
+
+
+Creating a Distance Matrix 
+
+def p_distance(DNA1,DNA2):
+    diff = 0
+    for i in range(len(DNA1)):
+        if DNA1[i] != DNA2[i]:
+            diff += 1
+    return "%.5f" % round((diff/len(DNA1)), 5)
+
+
+with open('rosalind_pdst.txt', 'r') as file:
+    content = file.read()
+DNAs_number, lines, line_number, DNAs = content.count('>'), content.splitlines(), 0, []
+for i in range(DNAs_number):
+    DNA = ''
+    line_number += 1
+    while lines[line_number][0] != '>':
+        DNA += lines[line_number]
+        line_number += 1
+        if line_number+1 > len(lines):
+            break
+    DNAs.append(DNA)
+for i in range(len(DNAs)):
+    line = ''
+    for j in range(len(DNAs)):
+        line += str(p_distance(DNAs[i],DNAs[j]))+ ' '
+    print(line)
+
+
+
+Edit Distance Alignment 
+
+from numpy import zeros
+
+def get_FASTA_data(file_location):
+     with open(file_location) as f:
+          return parser(f)
+
+
+def parser(f):
+     fasta_list=[]
+     for line in f:
+         if line[0] == '>':
+              try:
+                   fasta_list.append(current_dna)
+              except UnboundLocalError:
+                   pass
+              current_dna = [line.lstrip('>').rstrip('\n'),'']
+
+         else:
+              current_dna[1] += line.rstrip('\n')
+        
+     fasta_list.append(current_dna)
+
+     return fasta_list
+
+
+def edit_alignment(v, w):
+    S = zeros((len(v)+1, len(w)+1), dtype=int)
+    backtrack = zeros((len(v)+1, len(w)+1), dtype=int)
+    for i in range(1, len(v)+1):
+        S[i][0] = i
+    for j in range(1, len(w)+1):
+        S[0][j] = j
+
+    for i in range(1, len(v)+1):
+        for j in range(1, len(w)+1):
+            scores = [S[i-1][j-1] + (v[i-1] != w[j-1]), S[i-1][j]+1, S[i][j-1]+1]
+            S[i][j] = min(scores)
+            backtrack[i][j] = scores.index(S[i][j])
+
+    insert_indel = lambda word, i: word[:i] + '-' + word[i:]
+
+    v_aligned, w_aligned = v, w
+
+    i,j = len(v), len(w)
+    min_score = S[i][j]
+
+    while i*j != 0:
+        if backtrack[i][j] == 1:
+            i -= 1
+            w_aligned = insert_indel(w_aligned, j)
+        elif backtrack[i][j] == 2:
+            j -= 1
+            v_aligned = insert_indel(v_aligned, i)
+        else:
+            i -= 1
+            j -= 1
+
+    for repeat in range(i):
+        w_aligned = insert_indel(w_aligned, 0)
+    for repeat in range(j):
+        v_aligned = insert_indel(v_aligned, 0)
+
+    return str(min_score), v_aligned, w_aligned
+
+if __name__ == '__main__':
+
+    s, t = [fasta[1] for fasta in get_FASTA_data('rosalind_edta.txt')]
+    result = edit_alignment(s, t)
+    print ('\n'.join(result))
+    with open('result.txt', 'w') as output_data:
+        output_data.write('\n'.join(result))
+
+
+Edit Distance 
+
+import numpy as np
+
+
+def readfasta(lines):
+    
+    seq = []
+    index = []
+    seqplast = ""
+    numlines = 0
+    for i in lines:
+        if '>' in i:
+            index.append(i.replace("\n", "").replace(">", ""))
+            seq.append(seqplast.replace("\n", ""))
+            seqplast = ""
+            numlines += 1
+        else:
+            seqplast = seqplast + i.replace("\n", "")
+            numlines += 1
+        if numlines == len(lines):
+            seq.append(seqplast.replace("\n", ""))
+    seq = seq[1:]
+    return index, seq
+
+
+def Levenshtein(s1, s2):
+ 
+    ld = np.zeros((len(s1)+1, len(s2)+1)) 
+    for i in range(1,len(s1)+1): 
+        ld[i][0] = i
+    for i in range(1,len(s2)+1): 
+        ld[0][i] = i
+
+    for i in range(1,len(s1)+1):
+        for j in range(1,len(s2)+1):
+            if s1[i-1] == s2[j -1]: 
+                tep = 0 
+            else:
+                tep = 1
+
+
+            ld[i][j] = min(ld[i-1][j-1] + tep, ld[i][j-1] + 1, ld[i-1][j] + 1)
+
+    return ld[i][j]
+
+f = open('rosalind_edit.txt', 'r')
+lines = f.readlines()
+f.close()
+
+[index, seq] = readfasta(lines)
+seq1 = seq[0]
+seq2 = seq[1]
+res = []
+res = Levenshtein(seq1, seq2)
+print(int(res))
+
+
+Enumeration Gene Orders
+
+import itertools
+
+
+def enumerater(number):
+    lst = []
+    for i in range(1, number + 1):
+        lst.append(i)
+    permutations = list(itertools.permutations(lst))
+    print(len(permutations))
+    for i in range(len(permutations)):
+        permutations[i] = list(permutations[i])
+        for j in range(len(permutations[i])):
+            permutations[i][j] = str(permutations[i][j])
+    for i in permutations:
+        print(' '.join(i))
+
+
+with open('rosalind_perm.txt', 'r') as file:
+    number = file.read()
+enumerater(int(number))
+
+
+Finding a Shared Spliced Motif
+
+def find_ssm(DNA1, DNA2):
+    mainlst = []
+    for _ in range(len(DNA1)+1):
+        lst = []
+        mainlst.append(lst)
+        for _ in range(len(DNA2)+1):
+            lst.append(0)
+    for i in range(1, len(DNA1)+1):
+        for j in range(1, len(DNA2)+1):
+            if DNA1[i-1] == DNA2[j-1]:
+                mainlst[i][j] = mainlst[i-1][j-1]+1
+            else:
+                mainlst[i][j] = max(mainlst[i-1][j], mainlst[i][j-1])
+
+    m, n, lcmq = len(DNA1), len(DNA2), ''
+    while mainlst[m][n] != 0:
+
+        if mainlst[m][n] == mainlst[m-1][n]:
+            m -= 1
+        elif mainlst[m][n] == mainlst[m][n-1]:
+            n -= 1
+        else:
+            lcmq += DNA1[m-1]
+            m -= 1
+            n -= 1
+    lcmq = list(lcmq)
+    lcmq.reverse()
+    lcmq = ''.join(lcmq)
+    return lcmq
+
+
+with open('rosalind_lcsq.txt', 'r') as file:
+    content = file.read()
+DNAs_number, lines, line_number, DNAs = content.count('>'), content.splitlines(), 0, []
+for i in range(DNAs_number):
+    DNA = ''
+    line_number += 1
+    while lines[line_number][0] != '>':
+        DNA += lines[line_number]
+        line_number += 1
+        if line_number+1 > len(lines):
+            break
+    DNAs.append(DNA)
+print(find_ssm(DNAs[0], DNAs[1]))
+
+
+Finding a Spliced Motif 
+
+def find_motif(data, motif):
+    position, indices = -1, ''
+    for nucleotide in motif:
+        position = data.find(nucleotide, position+1)
+        indices += str(position+1) + ' '
+    print(indices)
+
+
+with open('rosalind_sseq.txt', 'r') as file:
+    content = file.read()
+DNAs_number, lines, line_number, DNAs = content.count('>'), content.splitlines(), 0, []
+for i in range(DNAs_number):
+    DNA = ''
+    line_number += 1
+    while lines[line_number][0] != '>':
+        DNA += lines[line_number]
+        line_number += 1
+        if line_number+1 > len(lines):
+            break
+    DNAs.append(DNA)
+
+find_motif(DNAs[0], DNAs[1])
+
+Global Alignment with Scoring Matrix 
+
+from Bio import pairwise2
+from Bio import SeqIO
+from Bio.SubsMat.MatrixInfo import blosum62
+
+seqs = []
+with open('rosalind_glob.fasta', 'r') as f:
+    for record in SeqIO.parse(f, 'fasta'):
+        seqs.append(record.seq)
+s = seqs[0]
+t = seqs[1]
+alignments = pairwise2.align.globalds(s, t, blosum62, -5, -5)
+print(pairwise2.format_alignment(*alignments[0]))
+
+
+Multiple Alignment
+
+from itertools import product
+from operator import add, mul
+from scipy.misc import comb
+
+def get_FASTA_data(file_location):
+     with open(file_location) as f:
+          return parser(f)
+
+def parser(f):
+     fasta_list=[]
+     for line in f:
+         if line[0] == '>':
+              try:
+                   fasta_list.append(current_dna)
+              except UnboundLocalError:
+                   pass
+              current_dna = [line.lstrip('>').rstrip('\n'),'']
+
+         else:
+              current_dna[1] += line.rstrip('\n')
+
+     fasta_list.append(current_dna)
+
+     return fasta_list
+
+
+def multiple_alignment(word_list):
+    word_list = ['$'+word for word in word_list]
+    S, backtrack = {}, {}
+    perm_list = list(product([0, -1], repeat=len(word_list)))[1:]
+    base_score = -1*comb(len(word_list), 2, exact=True)
+
+    for index in product(*map(xrange,map(lambda s: len(s) + 1, word_list))):
+
+        if reduce(mul, index) == 0:
+            if sum(index) == 0:
+                S[index] = 0
+            else:
+                S[index] = 2*base_score*reduce(add, map(len, word_list))
+
+        else:
+            previous_scores = [S[tuple(map(add, index, perm))] for perm in perm_list]
+            current_index_scores = []
+            for perm in perm_list:
+                chars = [word_list[i][index[i]-1] if perm_value == -1 else '-' for i, perm_value in enumerate(perm)]
+                current_index_scores.append(base_score + sum([comb(chars.count(ch), 2, exact=True) for ch in set(chars)]))
+
+            scores = map(add, previous_scores, current_index_scores)
+            backtrack[index], S[index] = max(enumerate(scores), key=lambda p: p[1])
+
+    alignment = word_list
+    current_index = map(len, word_list)
+
+    max_score = S[tuple(current_index)]
+
+    insert_indel = lambda word, i: word[:i] + '-' + word[i:]
+
+    while reduce(mul, current_index) != 0:
+        for i, perm_value in enumerate(perm_list[backtrack[tuple(current_index)]]):
+            if perm_value == 0:
+                alignment[i] = insert_indel(alignment[i], current_index[i])
+            else:
+                current_index[i] -= 1
+
+    return [str(max_score)] + [aligned[1:] for aligned in alignment]
+
+
+if __name__ == '__main__':
+    words = [fasta[1] for fasta in get_FASTA_data('rosalind_mult.txt')]
+    words_aligned = multiple_alignment(words)
+    print '\n'.join(words_aligned)
+    with open('mult.txt', 'w') as output_data:
+        output_data.write('\n'.join(words_aligned))
+
+
+Open Reading Frames
+
+def read_fasta(file):
+	seq = {}
+	fp = open(file, 'r')
+	for line in fp:
+		if line.startswith('>'):
+			name = line.replace('>', '')
+			name = name.replace('\n', '')
+			seq[name] = ''
+		else:
+			seq[name] += line.replace('\n', '')
+	fp.close()
+	return seq
+
+
+def coding(s):
+	if s == 'TTT' or s == 'TTC':
+		return 'F'
+	elif s == 'TTA' or s == 'TTG' or s == 'CTT' or s == 'CTC' or s == 'CTA' or s == 'CTG':
+		return 'L'
+	elif s == 'TCT' or s == 'TCC' or s == 'TCA' or s == 'TCG' or s == 'AGT' or s == 'AGC':
+		return 'S'
+	elif s == 'TAT' or s == 'TAC':
+		return 'Y'
+	elif s == 'TGT' or s == 'TGC':
+		return 'C'
+	elif s == 'TGG':
+		return 'W'
+	elif s == 'CCT' or s == 'CCC' or s == 'CCA' or s == 'CCG':
+		return 'P'
+	elif s == 'CAT' or s == 'CAC':
+		return 'H'
+	elif s == 'CAA' or s == 'CAG':
+		return 'Q'
+	elif s == 'CGT' or s == 'CGC' or s == 'CGA' or s == 'CGG' or s == 'AGA' or s == 'AGG':
+		return 'R'
+	elif s == 'ATT' or s == 'ATC' or s == 'ATA':
+		return 'I'
+	elif s == 'ATG':
+		return 'M'
+	elif s == 'ACT' or s == 'ACC' or s == 'ACA' or s == 'ACG':
+		return 'T'
+	elif s == 'AAT' or s == 'AAC':
+		return 'N'
+	elif s == 'AAA' or s == 'AAG':
+		return 'K'
+	elif s == 'GTT' or s == 'GTC' or s == 'GTA' or s == 'GTG':
+		return 'V'
+	elif s == 'GCT' or s == 'GCC' or s == 'GCA' or s == 'GCG':
+		return 'A'
+	elif s == 'GAT' or s == 'GAC':
+		return 'D'
+	elif s == 'GAA' or s == 'GAG':
+		return 'E'
+	elif s == 'GGT' or s == 'GGC' or s == 'GGA' or s == 'GGG':
+		return 'G'
+	elif s == 'TAA' or s == 'TAG' or s == 'TGA':
+		return '~'
+
+
+def switch(s):
+
+	s = s[::-1]
+
+	switch_s = ''
+	for i in range(len(s)):
+		if s[i] == 'A':
+			switch_s += 'T'
+		elif s[i] == 'T':
+			switch_s += 'A'
+		elif s[i] == 'G':
+			switch_s += 'C'
+		elif s[i] == 'C':
+			switch_s += 'G'
+	return switch_s
+
+def result(sequence):
+	s1 = ''
+	s2 = ''
+	s3 = ''
+	result_list = []
+	for i in range(0, len(sequence)-2, 3):
+		s1 = s1 + str(coding(sequence[i:i+3]))
+
+	for i in range(len(s1)):
+		if s1[i] == 'M' and s1.find('~',i) != -1:
+			result_list.append(s1[i:s1.find('~',i)])
+
+	for i in range(1, len(sequence)-2, 3):
+		s2 = s2 + str(coding(sequence[i:i+3]))
+
+	for i in range(len(s2)):
+		if s2[i] == 'M' and s2.find('~',i) != -1:
+			result_list.append(s2[i:s2.find('~',i)])
+
+	for i in range(2, len(sequence)-2, 3):
+		s3 = s3 + str(coding(sequence[i:i+3]))
+
+	for i in range(len(s3)):
+		if s3[i] == 'M' and s3.find('~',i) != -1:
+			result_list.append(s3[i:s3.find('~',i)])
+	return result_list
+
+def main(file):
+	seq = read_fasta(file)
+	sequence = ''
+	for i in seq.keys():
+		sequence = seq[i]
+
+	other_sequence = switch(sequence)
+
+	list1 = result(sequence)
+	list2 = result(other_sequence)
+	listall = list1 + list2
+	list3 = []
+
+	listall = list(set(listall))
+
+	for i in listall:
+		print(i)
+main("rosalind_orf6.txt")
+
+
+
+
+Overlap Graphs
+
+f = open("rosalind_grph.txt","r") 
+k = 3
+lines = f.readlines()
+id = []
+seq = []
+
+def reform(lines):
+    for line in lines:
+        if line.startswith(">"):
+            a = line.replace(">", "")
+            a = a.replace("\n", "")
+            id.append(a)
+        else:
+            if len(id) > len(seq):
+                line = line.replace("\n","")
+                seq.append(line)
+            else:
+                line = line.replace("\n", "")
+                seq[len(id) - 1] = seq[len(id) - 1] + line
+    return id , seq
+id, seq = reform(lines)
+
+s = []
+t = []
+
+for i in range(len(id)):
+    for j in range(len(seq)):
+
+        if i != j:
+            if seq[i][-k:] == seq[j][:k]:
+                s.append(id[i])
+                t.append(id[j])
+
+for i in range(len(s)):
+    print(s[i] + " " + t[i])
+
+f.close()
+
+
+RNA Splicing
+
+def translate_rna(sequence):
+    codonTable = {
+    'ATA':'I', 'ATC':'I', 'ATT':'I', 'ATG':'M',
+    'ACA':'T', 'ACC':'T', 'ACG':'T', 'ACT':'T',
+    'AAC':'N', 'AAT':'N', 'AAA':'K', 'AAG':'K',
+    'AGC':'S', 'AGT':'S', 'AGA':'R', 'AGG':'R',
+    'CTA':'L', 'CTC':'L', 'CTG':'L', 'CTT':'L',
+    'CCA':'P', 'CCC':'P', 'CCG':'P', 'CCT':'P',
+    'CAC':'H', 'CAT':'H', 'CAA':'Q', 'CAG':'Q',
+    'CGA':'R', 'CGC':'R', 'CGG':'R', 'CGT':'R',
+    'GTA':'V', 'GTC':'V', 'GTG':'V', 'GTT':'V',
+    'GCA':'A', 'GCC':'A', 'GCG':'A', 'GCT':'A',
+    'GAC':'D', 'GAT':'D', 'GAA':'E', 'GAG':'E',
+    'GGA':'G', 'GGC':'G', 'GGG':'G', 'GGT':'G',
+    'TCA':'S', 'TCC':'S', 'TCG':'S', 'TCT':'S',
+    'TTC':'F', 'TTT':'F', 'TTA':'L', 'TTG':'L',
+    'TAC':'Y', 'TAT':'Y', 'TAA':'', 'TAG':'',
+    'TGC':'C', 'TGT':'C', 'TGA':'', 'TGG':'W',
+    }
+    proUeinsequence = ''
+
+    for n in range(0,len(sequence),3):
+        if sequence[n:n+3] in codonTable.keys():
+            proUeinsequence += codonTable[sequence[n:n+3]]
+    return proUeinsequence
+
+seq_list = []
+stseq = ''
+
+for line in open('rosalind_splc6.txt'):
+    if line[0] == '>':
+        if stseq != '':
+            seq_list.append(stseq)
+            stseq = ''
+    else:
+        stseq = stseq + line.strip('\n')
+seq_list.append(stseq)
+
+
+for intron in seq_list[1:]:
+    
+    seq_list[0]=seq_list[0].replace(intron,'')
+
+print (translate_rna(seq_list[0]))
+
+
+Transitions and Transversions
+
+
+strings=[]
+
+with open("rosalind_tran.txt","r") as f:
+    f.readline()
+    curr=''
+    line=f.readline().strip()
+    while line!='':
+        if line[0]==">":
+            strings.append(curr)
+            curr=''
+        else:
+            curr+=line
+        line=f.readline().strip()
+    strings.append(curr)
+
+purines=['A','G']
+pyrimidines=['C','T']
+transition=0
+transversion=0
+
+for i in range(len(strings[0])):
+    if strings[0][i]!=strings[1][i]:
+        if strings[0][i] in purines and strings[1][i] in purines or strings[0][i] in pyrimidines and strings[1][i] in pyrimidines:
+            transition+=1
+        else:
+            transversion+=1
+
+print(transition/transversion)
+
+
+Translating RNA into Protein
+
+s = 'AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA'
+def returnProtein(rna):
+
+    rnaCodons = {"UUU":"F", "UUC":"F", "UUA":"L", "UUG":"L",
+    "UCU":"S", "UCC":"S", "UCA":"S", "UCG":"S",
+    "UAU":"Y", "UAC":"Y", "UAA":"Stop", "UAG":"Stop",
+    "UGU":"C", "UGC":"C", "UGA":"Stop", "UGG":"W",
+    "CUU":"L", "CUC":"L", "CUA":"L", "CUG":"L",
+    "CCU":"P", "CCC":"P", "CCA":"P", "CCG":"P",
+    "CAU":"H", "CAC":"H", "CAA":"Q", "CAG":"Q",
+    "CGU":"R", "CGC":"R", "CGA":"R", "CGG":"R",
+    "AUU":"I", "AUC":"I", "AUA":"I", "AUG":"M",
+    "ACU":"T", "ACC":"T", "ACA":"T", "ACG":"T",
+    "AAU":"N", "AAC":"N", "AAA":"K", "AAG":"K",
+    "AGU":"S", "AGC":"S", "AGA":"R", "AGG":"R",
+    "GUU":"V", "GUC":"V", "GUA":"V", "GUG":"V",
+    "GCU":"A", "GCC":"A", "GCA":"A", "GCG":"A",
+    "GAU":"D", "GAC":"D", "GAA":"E", "GAG":"E",
+    "GGU":"G", "GGC":"G", "GGA":"G", "GGG":"G",}
+    
+    codons = []
+    for i in range(0,len(rna),3):
+        codons.append(rna[i:i+3])
+    protein = ''.join([rnaCodons[codon] for codon in codons])
+    return protein
+
+s = 'AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA'
+
+returnProtein(s)
